@@ -1,0 +1,189 @@
+======================================================================
+HI-Small_Trans.csv
+======================================================================
+(상위 30만행 기준)
+
+[1] 컬럼과 타입
+Timestamp                 str
+From Bank               int64
+Account                   str
+To Bank                 int64
+Account.1                 str
+Amount Received       float64
+Receiving Currency        str
+Amount Paid           float64
+Payment Currency          str
+Payment Format            str
+Is Laundering           int64
+dtype: object
+
+[2] 샘플 3행
+          Timestamp  From Bank    Account  To Bank  Account.1  Amount Received Receiving Currency  Amount Paid Payment Currency Payment Format  Is Laundering
+0  2022/09/01 00:20         10  8000EBD30       10  8000EBD30          3697.34          US Dollar      3697.34        US Dollar   Reinvestment              0
+1  2022/09/01 00:20       3208  8000F4580        1  8000F5340             0.01          US Dollar         0.01        US Dollar         Cheque              0
+2  2022/09/01 00:00       3209  8000F4670     3209  8000F4670         14675.57          US Dollar     14675.57        US Dollar   Reinvestment              0
+
+[3] 결측치
+Timestamp             0
+From Bank             0
+Account               0
+To Bank               0
+Account.1             0
+Amount Received       0
+Receiving Currency    0
+Amount Paid           0
+Payment Currency      0
+Payment Format        0
+Is Laundering         0
+dtype: int64
+
+[4] 컬럼별 고유값 수
+  Timestamp: 45
+  From Bank: 14022
+  Account: 223902
+  To Bank: 10940
+  Account.1: 216760
+  Amount Received: 207621
+  Receiving Currency: 15
+  Amount Paid: 208576
+  Payment Currency: 15
+  Payment Format: 7
+  Is Laundering: 2
+
+[5] 핵심 컬럼 후보
+  시각: ['Timestamp']
+  계좌: ['Account', 'Account.1']
+  은행: ['From Bank', 'To Bank']
+  금액: ['Amount Received', 'Amount Paid']
+  통화: ['Receiving Currency', 'Payment Currency']
+  결제형식: ['Payment Currency', 'Payment Format']
+  라벨: ['Is Laundering']
+
+[6] 라벨 'Is Laundering'
+Is Laundering
+0    299972
+1        28
+Name: count, dtype: int64
+비율: {0: 0.999907, 1: 9.3e-05}
+
+[7] 결제형식 'Payment Format' 값 분포  ★ 현금 구분 가능 여부
+Payment Format
+Reinvestment    217321
+Cheque           29947
+Credit Card      27111
+ACH              14025
+Cash              7998
+Wire              3525
+Bitcoin             73
+Name: count, dtype: int64
+
+[8] 시각 'Timestamp'
+  원본 예시: ['2022/09/01 00:20', '2022/09/01 00:20', '2022/09/01 00:00']
+  파싱 성공률: 1.0
+  범위: 2022-09-01 00:00:00 ~ 2022-09-04 15:48:00
+  시(hour) 분포:
+Timestamp
+0     299979
+4          2
+7          1
+9          6
+11         1
+12         1
+13         1
+14         3
+15         4
+21         1
+23         1
+
+[9] 금액 'Amount Received' 분포
+count    3.000000e+05
+mean     8.455227e+06
+std      4.092252e+08
+min      1.000000e-06
+25%      2.422000e+01
+50%      2.754950e+03
+75%      4.557410e+04
+max      1.079558e+11
+Name: Amount Received, dtype: float64
+
+[10] 통화 'Receiving Currency' 분포
+Receiving Currency
+US Dollar            122176
+Euro                  75662
+Swiss Franc           14762
+Yuan                  13565
+Rupee                 12583
+UK Pound              11134
+Yen                   10346
+Ruble                 10072
+Canadian Dollar        8923
+Australian Dollar      8679
+Name: count, dtype: int64
+
+======================================================================
+HI-Small_accounts.csv
+======================================================================
+[1] 컬럼과 타입
+Bank Name           str
+Bank ID           int64
+Account Number      str
+Entity ID           str
+Entity Name         str
+dtype: object
+
+[2] 샘플 3행
+             Bank Name  Bank ID Account Number  Entity ID                 Entity Name
+0  Portugal Bank #4507   331579      80B779D80  80062E240  Sole Proprietorship #50438
+1      Canada Bank #27      210      809D86900  800C998A0          Corporation #33520
+2          UK Bank #33    21884      80812BE00  800C47F50          Partnership #35397
+
+[3] 고유값 수
+  Bank Name: 11039
+  Bank ID: 16716
+  Account Number: 100000
+  Entity ID: 56466
+  Entity Name: 56466
+
+[4] 국가/은행 관련 컬럼: ['Bank Name', 'Bank ID']
+
+  Bank Name 상위 10개:
+Bank Name
+National Bank of Laramie       717
+National Bank of the East      703
+Savings Bank of Fairfield      523
+Arbor Savings Bank             522
+National Bank of Pittsburgh    471
+First Bank of Tampa            471
+Japan Bank #0                  469
+Savings Bank of Huron          443
+China Bank #14                 407
+Golden Bancorp                 405
+
+  Bank ID 상위 10개:
+Bank ID
+12     590
+10     581
+15     469
+220    440
+3      407
+1      389
+20     342
+7      332
+116    320
+28     293
+
+======================================================================
+HI-Small_Patterns.txt — 자금세탁 유형
+======================================================================
+총 라인 수: 4319
+패턴 블록 수: 370
+
+유형별 개수:
+  CYCLE: 54
+  GATHER-SCATTER: 51
+  BIPARTITE: 49
+  FAN-OUT: 48
+  SCATTER-GATHER: 44
+  STACK: 43
+  RANDOM: 41
+  FAN-IN: 40
