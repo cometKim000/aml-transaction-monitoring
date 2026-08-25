@@ -20,9 +20,12 @@ r02_passthrough:
   candidate_min_txns: 6       # 1차 필터 — 계좌 총 거래 건수
 
 r03_circular:
-  max_len: 6                  # 최대 순환 길이 (hop)
-  amount_tolerance: 0.2       # 경로상 금액 편차 허용
-  max_duration_days: 14       # 순환 완료 소요 기간
+  min_amount: 5000            # 후보 간선 최소 금액
+  min_len: 3                  # 최소 순환 길이 (hop)
+  max_len: 8                  # 최대 순환 길이
+  amount_tolerance: 0.5       # 경로상 금액 편차 허용 (50%)
+  max_duration_days: 30       # 순환 완료 소요 기간 상한
+  max_cycles: 50000           # 탐색 상한 (안전장치)
 
 r04_cross_border:
   amount_threshold_usd: 10000
