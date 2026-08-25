@@ -11,12 +11,13 @@ r01_structuring:
   near_ratio: 0.5             # 기준액 근접도 — 5천~1만 달러 구간
 
 r02_passthrough:
-  window_hours: 24            # 관찰 창
-  pass_ratio: 0.9             # 유출/유입 비율 (고속 정산)
-  min_in: 3                   # 최소 유입 건수
-  min_in_parties: 3           # 최소 유입 상대방 수
-  min_out_parties: 2          # 최소 유출 상대방 수
-  max_lag_hours: 48           # 유입~유출 중앙 시차
+  window_hours: 72            # 관찰 창 크기
+  pass_ratio: 0.7             # 창 내 유출/유입 비율
+  min_in: 3                   # 창 내 최소 유입 건수
+  min_in_parties: 3           # 창 내 최소 유입 상대방 수
+  min_out_parties: 2          # 창 내 최소 유출 상대방 수
+  min_amount: 1000            # 창 내 최소 유입 금액 (소액 노이즈 제거)
+  candidate_min_txns: 6       # 1차 필터 — 계좌 총 거래 건수
 
 r03_circular:
   max_len: 6                  # 최대 순환 길이 (hop)
@@ -24,5 +25,6 @@ r03_circular:
   max_duration_days: 14       # 순환 완료 소요 기간
 
 r04_cross_border:
-  amount_threshold_usd: 10000 # EDD 대상 금액
-  window_days: 1
+  amount_threshold_usd: 10000
+  window_days: 7
+  min_txns: 1
