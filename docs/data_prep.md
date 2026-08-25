@@ -69,7 +69,7 @@ Savings Bank of Fairfield, First Bank of Tampa 등 미국 지명 기반
 | 파일 | 행수 | 용도 |
 |---|---|---|
 | transactions.parquet | 4,487,133 | 그래프 기반 룰 (R-02, R-03) |
-| cash_usd.parquet | (실행 결과 기입) | 금액 기준 룰 (R-01) |
+| cash_usd.parquet | 187,760 | 금액 기준 룰 (R-01) |
 | account_country.csv | 518,581 | 계좌-국가 매핑 |
 
 **통화 처리**: 15종 통화가 혼재. 금액 기준 룰은 USD로 한정하고,
