@@ -1,0 +1,28 @@
+# 룰 임계값 설정
+# 값은 잠정치이며 6단계 튜닝 실험에서 확정한다.
+
+ctr:
+  threshold_usd: 10000        # CTR 기준액 대응 (한국 1000만원 / 미국 $10,000)
+  window_days: 1              # 1거래일
+
+r01_structuring:
+  window_days: 1              # 집계 창 (거래일)
+  min_count: 2                # 최소 거래 건수
+  near_ratio: 0.5             # 기준액 근접도 — 5천~1만 달러 구간
+
+r02_passthrough:
+  window_hours: 24            # 관찰 창
+  pass_ratio: 0.9             # 유출/유입 비율 (고속 정산)
+  min_in: 3                   # 최소 유입 건수
+  min_in_parties: 3           # 최소 유입 상대방 수
+  min_out_parties: 2          # 최소 유출 상대방 수
+  max_lag_hours: 48           # 유입~유출 중앙 시차
+
+r03_circular:
+  max_len: 6                  # 최대 순환 길이 (hop)
+  amount_tolerance: 0.2       # 경로상 금액 편차 허용
+  max_duration_days: 14       # 순환 완료 소요 기간
+
+r04_cross_border:
+  amount_threshold_usd: 10000 # EDD 대상 금액
+  window_days: 1
