@@ -17,3 +17,4 @@ if d.sum():
     print("\n샘플 상세:")
     print(tx[m][["txn_id", "ts", "from_account", "to_account",
                  "amount", "currency", "fmt", "is_laundering"]].to_string())
+                 

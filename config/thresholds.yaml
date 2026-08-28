@@ -11,13 +11,13 @@ r01_structuring:
   near_ratio: 0.5             # 기준액 근접도 — 5천~1만 달러 구간
 
 r02_passthrough:
-  window_hours: 72            # 관찰 창 크기
-  pass_ratio: 0.7             # 창 내 유출/유입 비율
-  min_in: 3                   # 창 내 최소 유입 건수
-  min_in_parties: 3           # 창 내 최소 유입 상대방 수
-  min_out_parties: 2          # 창 내 최소 유출 상대방 수
-  min_amount: 1000            # 창 내 최소 유입 금액 (소액 노이즈 제거)
-  candidate_min_txns: 6       # 1차 필터 — 계좌 총 거래 건수
+  window_hours: 120           # 72 → 120 (재현율 +3.2%p, 정밀도 유지)
+  pass_ratio: 0.5             # 0.7 → 0.5 (효과 없어 느슨하게)
+  min_in: 3
+  min_in_parties: 3           # 핵심 지렛대 — 유지
+  min_out_parties: 2
+  min_amount: 1000
+  candidate_min_txns: 6
 
 r03_circular:
   min_amount: 5000            # 후보 간선 최소 금액
