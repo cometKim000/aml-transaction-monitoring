@@ -173,7 +173,8 @@ IBM 리서치가 다중 에이전트 시뮬레이터(AMLSim)로 생성한 합성
 실제 금융 거래 데이터는 개인정보 문제로 공개되지 않아, AML 탐지
 연구에서 널리 쓰이는 벤치마크입니다.
 
-상세 정제 과정과 판단 근거는 [`docs/data_prep.md`](docs/data_prep.md) 참조.
+상세 정제 과정과 판단 근거는 [`docs/data_prep.md`](docs/data_prep.md),
+데이터 출처·변경 고지·재배포 조건은 [`DATA_LICENSE.md`](DATA_LICENSE.md) 참조.
 
 ---
 
@@ -306,3 +307,18 @@ python src/analyze_rules.py
 - [ ] Streamlit 심사 화면
 - [ ] STR 초안 자동 생성
 - [ ] 제재·PEP 스크리닝 모듈 (한글 로마자 표기 변형 처리 포함)
+
+---
+
+## 라이선스
+
+코드와 데이터에 서로 다른 라이선스가 적용됩니다.
+
+| 대상 | 라이선스 |
+|---|---|
+| 소스 코드·문서 | [MIT](LICENSE) |
+| 파생 데이터 (`data/alerts/*.parquet`) | [CDLA-Sharing-1.0](CDLA-Sharing-1.0.txt) |
+
+원본 데이터는 IBM Corporation이 CDLA-Sharing-1.0으로 배포한 합성 데이터이며
+이 저장소에 포함되어 있지 않습니다. 출처·변경 고지·재배포 조건은
+[`DATA_LICENSE.md`](DATA_LICENSE.md)를 참조하십시오.
