@@ -105,7 +105,7 @@ if page == "① 대시보드":
         by_rule = alerts.groupby("rule_id")["account_id"].nunique().reset_index()
         by_rule["rule_label"] = by_rule["rule_id"].map(RULE_LABELS)
         fig = px.pie(by_rule, values="account_id", names="rule_label", hole=0.4)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     with col2:
         st.subheader("룰별 정밀도")
@@ -118,7 +118,7 @@ if page == "① 대시보드":
         fig = px.bar(prec, x="rule_label", y="precision",
                     text=prec["precision"].apply(lambda x: f"{x:.1%}"))
         fig.update_layout(yaxis_tickformat=".0%")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     st.divider()
     st.subheader("베이스라인 대비 감축 효과")
@@ -131,7 +131,7 @@ if page == "① 대시보드":
             "진성": [int(b1["is_true_positive"].sum()),
                     int(r01["is_true_positive"].sum())],
         })
-        st.dataframe(comp, use_container_width=True, hide_index=True)
+        st.dataframe(comp, width="stretch", hide_index=True)
 
 # =====================================================================
 # ② 알림 리스트
@@ -165,7 +165,7 @@ elif page == "② 알림 리스트":
     show["우선순위 점수"] = show["우선순위 점수"].round(3)
 
     st.write(f"총 {len(show):,}건")
-    st.dataframe(show, use_container_width=True, hide_index=True, height=500)
+    st.dataframe(show, width="stretch", hide_index=True, height=500)
 
     st.session_state.setdefault("selected_account", None)
     picked = st.selectbox("상세보기로 이동할 계좌 선택",
@@ -204,7 +204,7 @@ elif page == "③ 알림 상세":
             st.dataframe(
                 detail[["ts", "from_account", "to_account", "amount",
                        "currency", "fmt"]],
-                use_container_width=True, hide_index=True,
+                width="stretch", hide_index=True,
             )
 
             if row["rule_id"] == "R-03" and "cycle_path_full" in ev:
@@ -220,7 +220,7 @@ elif page == "③ 알림 상세":
                 ))
                 fig.update_layout(height=200, showlegend=False,
                                  xaxis_visible=False, yaxis_visible=False)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
     st.divider()
     if st.button("이 계좌로 STR 초안 생성하기"):

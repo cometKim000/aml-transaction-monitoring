@@ -3,5 +3,6 @@ numpy>=1.24
 pyarrow>=14.0
 networkx>=3.0
 PyYAML>=6.0
-streamlit>=1.35
+# width="stretch" 사용 — 구버전의 use_container_width는 지원 종료됨
+streamlit>=1.62,<2.0
 plotly>=5.20
