@@ -1,5 +1,9 @@
 # AML Transaction Monitoring System
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://aml-transaction-monitoring-mmtc5tytynpprqgtunjddy.streamlit.app)
+
+**[▶ 라이브 데모](https://aml-transaction-monitoring-mmtc5tytynpprqgtunjddy.streamlit.app)** — 탐지 현황 대시보드, 알림 리스트·상세, STR 초안 생성까지 브라우저에서 바로 확인할 수 있습니다.
+
 특정금융정보법·업무규정 조문을 실행 가능한 탐지 룰로 번역하고,
 각 룰의 임계값이 오탐률에 미치는 영향을 정량 측정한
 자금세탁방지(AML) 거래모니터링 엔진입니다.
@@ -298,7 +302,7 @@ streamlit run app.py
 ```
 
 > **배포 환경 안내**: Streamlit Cloud 등 원격 배포 시, 전체 거래 원장
-> (`data/reference/transactions.parquet`, 448만 건 / 188MB)은 용량 때문에
+> (`data/reference/transactions.parquet`, 448만 건 / 119MB)은 용량 때문에
 > 리포지토리에 포함하지 않습니다. 대신 알림에 연루된 거래만 추출한 샘플
 > (`data/alerts/tx_sample.parquet`, 66.8만 건 / 10MB)로 자동 대체되며,
 > **③ 알림 상세·④ STR 생성 기능은 동일하게 작동합니다**
