@@ -196,6 +196,30 @@ Feature importance 상위 5개 중 4개가 룰 히트 여부(flag)가 아닌
 
 ---
 
+## 심사 화면 · STR 초안 생성
+
+탐지 결과를 심사역이 실제로 쓰는 형태까지 연결했습니다.
+**[▶ 라이브 데모](https://aml-monitoring-cometkim.streamlit.app)**
+
+| 화면 | 내용 |
+|---|---|
+| ① 대시보드 | 룰별 알림 점유율·정밀도, CTR 베이스라인 대비 감축률 |
+| ② 알림 리스트 | ML 우선순위 점수 정렬, 룰·고위험 필터 |
+| ③ 알림 상세 | 계좌별 판정 근거(evidence), 근거 거래 내역, 순환 경로 시각화 |
+| ④ STR 생성 | FIU 별지 제1호 서식 초안 생성 및 마크다운 다운로드 |
+
+STR 초안은 특금법 제4조·시행령 제7조에 따른 6개 항목(보고기관, 거래자,
+거래채널, 의심스러운 거래내용, 합당한 근거, 보존자료)을 채우고, 결정일로부터
+3영업일의 보고 기한을 함께 표기합니다. 시스템이 채우는 것은 정량적 근거까지이며,
+**"의심스러운 합당한 근거"의 정성적 판단과 최종 서명은 보고책임자 몫**으로
+비워 둡니다 — 자동 생성물을 그대로 제출하는 것은 규정상 허용되지 않기 때문입니다.
+
+R-03(순환거래) 초안의 거래 내역은 시간순이 아니라 **순환 경로 순서**로
+정렬합니다. 순환 경로상의 거래는 시각 순서가 경로 순서와 어긋나는 경우가 있어,
+시간순으로 나열하면 자금 이동 경로가 끊겨 보이기 때문입니다.
+
+---
+
 ## 데이터
 
 [IBM Transactions for Anti Money Laundering](https://www.kaggle.com/datasets/ealtman2019/ibm-transactions-for-anti-money-laundering-aml) (HI-Small, CDLA-Sharing-1.0)
@@ -247,7 +271,10 @@ IBM 리서치가 다중 에이전트 시뮬레이터(AMLSim)로 생성한 합성
 ML 기반 우선순위 정렬 (완료) ── 룰은 탐지, 모델은 정렬만 수행
       │
       ▼
-[예정] 심사 화면 · STR 초안 생성
+심사 화면 (Streamlit) ── 대시보드 · 알림 리스트 · 알림 상세
+      │
+      ▼
+STR 초안 생성 (FIU 별지 제1호 서식) ── 보고책임자 검토용 마크다운
 ```
 
 **설계 원칙**: 탐지는 룰이, 정렬은 모델이 담당합니다. 모델이 직접
@@ -263,6 +290,8 @@ ML 기반 우선순위 정렬 (완료) ── 룰은 탐지, 모델은 정렬만
 | 언어·데이터 처리 | Python 3.12, pandas, NumPy, PyArrow |
 | 그래프 분석 | NetworkX (SCC 분해, 순환 탐색, 차수 기반 가지치기) |
 | 탐색 최적화 | `np.searchsorted` 이분 탐색 기반 슬라이딩 윈도우 |
+| ML 정렬 | LightGBM, scikit-learn (5-fold 교차검증), matplotlib |
+| 심사 화면 | Streamlit, Plotly (Streamlit Community Cloud 배포) |
 | 설정 관리 | YAML 파라미터 외부화 |
 | 검증 | 조인 무결성 오류를 `SystemExit`로 강제 차단 |
 | 형상 관리 | Git |
@@ -272,9 +301,10 @@ ML 기반 우선순위 정렬 (완료) ── 룰은 탐지, 모델은 정렬만
 ## 실행 방법
 
 ```bash
-# 0. 환경
+# 0. 환경 (requirements.txt는 배포용 최소 구성,
+#    ML 정렬·튜닝 시각화까지 재현하려면 -dev도 함께 설치)
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-dev.txt
 
 # 1. 데이터 정제 (Kaggle 원본을 data/raw/ 에 배치 후)
 python src/prepare.py
@@ -291,13 +321,16 @@ python src/rules/r04_cross_border.py
 # 4. 룰별 기여도 분석
 python src/analyze_rules.py
 
-# 5. STR 초안 생성 (룰, 건수)
+# 5. ML 기반 알림 우선순위 정렬 (② 화면의 점수 생성)
+python src/rank_alerts.py
+
+# 6. STR 초안 생성 (룰, 건수)
 python src/generate_str.py R-03 3
 
-# 6. 배포용 거래 샘플 갱신 (룰 재실행 시 함께 수행)
+# 7. 배포용 거래 샘플 갱신 (룰 재실행 시 함께 수행)
 python src/make_tx_sample.py
 
-# 7. 심사 화면 실행
+# 8. 심사 화면 실행
 streamlit run app.py
 ```
 
@@ -321,16 +354,20 @@ streamlit run app.py
 │   ├── parse_patterns.py       # 정답셋 구축
 │   ├── alerts.py               # 알림 공통 스키마
 │   ├── analyze_rules.py        # 룰별 기여도 분석
+│   ├── rank_alerts.py          # ML 기반 알림 우선순위 정렬
 │   ├── generate_str.py         # STR 초안 생성 (FIU 별지 제1호)
 │   ├── make_tx_sample.py       # 배포용 거래 샘플 추출
 │   ├── tune_r02.py ~ r04.py    # 파라미터 민감도 실험
 │   ├── plot_tuning.py          # 민감도 곡선 시각화
+│   ├── inspect_*.py            # 데이터 탐색 (일회성)
 │   └── rules/
 │       ├── r01_structuring.py
 │       ├── r02_passthrough.py
 │       ├── r03_circular.py
 │       └── r04_cross_border.py
 ├── config/thresholds.yaml      # 룰 파라미터
+├── requirements.txt            # 배포 환경 의존성 (최소 구성)
+├── requirements-dev.txt        # 전체 파이프라인 재현용 (ML·시각화)
 ├── docs/
 │   ├── data_prep.md            # 데이터 정제 근거
 │   ├── threshold_tuning.md     # 튜닝 실험 결과 및 곡선
@@ -365,9 +402,10 @@ streamlit run app.py
 ## 향후 계획
 
 - [x] ML 기반 알림 우선순위 정렬 (Precision@20% = 20.8%, 재현율 79.2%)
-- [ ] Streamlit 심사 화면
-- [ ] STR 초안 자동 생성
+- [x] Streamlit 심사 화면 ([라이브 데모](https://aml-monitoring-cometkim.streamlit.app))
+- [x] STR 초안 자동 생성 (FIU 별지 제1호 서식)
 - [ ] 제재·PEP 스크리닝 모듈 (한글 로마자 표기 변형 처리 포함)
+- [ ] 시간 기반 검증 (과거 학습 → 미래 예측) — 현재 데이터 기간 18일로는 불가
 
 ---
 
