@@ -404,8 +404,6 @@ streamlit run app.py
 - [x] ML 기반 알림 우선순위 정렬 (Precision@20% = 20.8%, 재현율 79.2%)
 - [x] Streamlit 심사 화면 ([라이브 데모](https://aml-monitoring-cometkim.streamlit.app))
 - [x] STR 초안 자동 생성 (FIU 별지 제1호 서식)
-- [ ] 제재·PEP 스크리닝 모듈 (한글 로마자 표기 변형 처리 포함)
-- [ ] 시간 기반 검증 (과거 학습 → 미래 예측) — 현재 데이터 기간 18일로는 불가
 
 ---
 
