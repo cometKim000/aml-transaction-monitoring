@@ -146,6 +146,7 @@ def to_alerts(tx, valid):
              "n_cycles": len(cycs),
              "path": " → ".join(best["cycle"][:6]) +
                      ("..." if len(best["cycle"]) > 6 else ""),
+             "cycle_path_full": best["cycle"],
              "amount_min": round(min(best["amounts"]), 2),
              "amount_max": round(max(best["amounts"]), 2),
              "duration_days": round(
