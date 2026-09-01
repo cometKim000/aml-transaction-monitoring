@@ -11,12 +11,15 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-sys.path.insert(0, "src")
+# 배포 환경의 작업 디렉토리가 리포 루트라는 보장이 없다. 상대 경로를 쓰면
+# import와 데이터 로딩이 모두 실패하므로 이 파일 위치를 기준으로 고정한다.
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT / "src"))
 from generate_str import (format_evidence, generate_str,   # noqa: E402
                           load_profile)
 
-REF = "data/reference"
-ALERTS = "data/alerts"
+REF = str(ROOT / "data" / "reference")
+ALERTS = str(ROOT / "data" / "alerts")
 
 RULE_LABELS = {
     "R-01": "분할입금 (Structuring)",

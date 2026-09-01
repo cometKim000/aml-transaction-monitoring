@@ -16,8 +16,9 @@ from pathlib import Path
 
 import pandas as pd
 
-ALERTS = "data/alerts"
-REF = "data/reference"
+ROOT = Path(__file__).resolve().parents[1]
+ALERTS = str(ROOT / "data" / "alerts")
+REF = str(ROOT / "data" / "reference")
 
 FILES = ["r01.parquet", "r02.parquet", "r03.parquet", "r04.parquet"]
 OUT = f"{ALERTS}/tx_sample.parquet"

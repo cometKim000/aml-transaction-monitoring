@@ -23,8 +23,10 @@ from pathlib import Path
 
 import pandas as pd
 
-REF = "data/reference"
-ALERTS = "data/alerts"
+# 작업 디렉토리와 무관하게 동작하도록 리포 루트를 파일 위치에서 구한다
+ROOT = Path(__file__).resolve().parents[1]
+REF = str(ROOT / "data" / "reference")
+ALERTS = str(ROOT / "data" / "alerts")
 
 # ④항 거래 표에 싣는 최대 행 수 (초과분은 건수만 표기하고 생략)
 MAX_TABLE_ROWS = 100
@@ -380,7 +382,7 @@ if __name__ == "__main__":
         print("주의: account_profile.parquet 없음 — '변동된 차이점'이 "
               "담당자 기입란으로 남습니다 (src/make_tx_sample.py 실행 필요)")
 
-    out_dir = Path("data/str_drafts")
+    out_dir = ROOT / "data" / "str_drafts"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for _, row in alerts.iterrows():
