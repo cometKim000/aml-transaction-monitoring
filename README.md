@@ -1,8 +1,8 @@
 # AML Transaction Monitoring System
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://aml-transaction-monitoring-mmtc5tytynpprqgtunjddy.streamlit.app)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://aml-monitoring-cometkim.streamlit.app)
 
-**[▶ 라이브 데모](https://aml-transaction-monitoring-mmtc5tytynpprqgtunjddy.streamlit.app)** — 탐지 현황 대시보드, 알림 리스트·상세, STR 초안 생성까지 브라우저에서 바로 확인할 수 있습니다.
+**[▶ 라이브 데모](https://aml-monitoring-cometkim.streamlit.app)** — 탐지 현황 대시보드, 알림 리스트·상세, STR 초안 생성까지 브라우저에서 바로 확인할 수 있습니다.
 
 특정금융정보법·업무규정 조문을 실행 가능한 탐지 룰로 번역하고,
 각 룰의 임계값이 오탐률에 미치는 영향을 정량 측정한
