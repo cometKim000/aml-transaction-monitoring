@@ -20,6 +20,9 @@ import pandas as pd
 REF = "data/reference"
 ALERTS = "data/alerts"
 
+# ④항 거래 표에 싣는 최대 행 수 (초과분은 건수만 표기하고 생략)
+MAX_TABLE_ROWS = 100
+
 RULE_LABELS = {
     "R-01": "분할입금(Structuring) — 고액현금거래보고 회피 의심",
     "R-02": "자금통과계좌(Mule Account) — 자금이동경로 은닉 의심",
@@ -143,14 +146,28 @@ def generate_str(account_id, rule_id, alert_row, tx):
                         f"정렬되어 있습니다 ({len(cycle)}개 계좌 순환).*")
             lines.append("")
 
+    # 자금통과계좌는 근거 거래가 수만 건에 이르는 경우가 있다(최대 82,841건).
+    # 전량을 표로 펼치면 문서가 수 MB로 불어나 사람이 읽을 수 없고 화면도
+    # 멈추므로, 표는 상한까지만 싣고 누락 사실을 명시한다. 전체 내역은
+    # ⑥항의 알림 판정 로그(evidence)에 보존된다.
+    shown = ordered_txns.head(MAX_TABLE_ROWS)
+    omitted = len(ordered_txns) - len(shown)
+    if omitted > 0:
+        lines.append(f"*근거 거래 {len(ordered_txns):,}건 중 {len(shown):,}건만 "
+                    f"표로 싣습니다 (나머지 {omitted:,}건은 ⑥항 판정 로그 참조). "
+                    f"아래 합계는 생략분을 포함한 전체 기준입니다.*")
+        lines.append("")
+
     lines.append("| 순번 | 일시 | 송신계좌 | 수신계좌 | 금액 | 통화 | 형식 |")
     lines.append("|---:|---|---|---|---:|---|---|")
-    for i, (_, r) in enumerate(ordered_txns.iterrows(), 1):
-        lines.append(f"| {i} | {r['ts']:%Y-%m-%d %H:%M} | {r['from_account']} | "
-                    f"{r['to_account']} | {r['amount']:,.2f} | "
-                    f"{r['currency']} | {r['fmt']} |")
+    for i, r in enumerate(shown.itertuples(), 1):
+        lines.append(f"| {i} | {r.ts:%Y-%m-%d %H:%M} | {r.from_account} | "
+                    f"{r.to_account} | {r.amount:,.2f} | "
+                    f"{r.currency} | {r.fmt} |")
+    if omitted > 0:
+        lines.append(f"| … | *이하 {omitted:,}건 생략* | | | | | |")
     lines.append("")
-    lines.append(f"거래 건수: {len(txns)}건 / "
+    lines.append(f"거래 건수: {len(txns):,}건 / "
                 f"합산 금액: {txns['amount'].sum():,.2f}")
     lines.append("")
 
@@ -165,8 +182,9 @@ def generate_str(account_id, rule_id, alert_row, tx):
 
     lines.append("## ⑥ 보존자료의 종류")
     lines.append("")
-    lines.append("- 거래 원장 상세 내역 (본 문서 ④항 참조)")
-    lines.append("- 탐지 룰 판정 로그 (`data/alerts/` evidence)")
+    lines.append(f"- 거래 원장 상세 내역 전체 {len(txns):,}건 "
+                f"(본 문서 ④항에는 최대 {MAX_TABLE_ROWS}건까지 발췌)")
+    lines.append("- 탐지 룰 판정 로그 (`data/alerts/` evidence — 근거 거래 ID 전량)")
     lines.append("- 계좌 실명확인 자료 [금융회사 보유분 별도 첨부]")
     lines.append("")
 

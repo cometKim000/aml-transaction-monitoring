@@ -11,6 +11,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+sys.path.insert(0, "src")
+from generate_str import generate_str   # noqa: E402
+
 REF = "data/reference"
 ALERTS = "data/alerts"
 
@@ -249,17 +252,19 @@ elif page == "④ STR 생성":
         account_id = st.selectbox("계좌 선택", options=acc_options,
                                  index=acc_idx if acc_options else 0)
 
+    row = alerts[(alerts["rule_id"] == rule_id) &
+                (alerts["account_id"] == account_id)].iloc[0]
+    st.caption(f"근거 거래 {row['txn_count']:,}건 / "
+              f"합산 {row['total_amount']:,.2f}")
+
     if st.button("STR 초안 생성", type="primary"):
-        sys.path.insert(0, "src")
-        from generate_str import generate_str
+        with st.spinner("초안 생성 중..."):
+            st.session_state["str_doc"] = generate_str(
+                account_id, rule_id, row, tx)
+        # 생성 시점의 대상을 함께 기록 — 룰·계좌를 바꾸면 이전 초안을 내린다
+        st.session_state["str_doc_key"] = (rule_id, account_id)
 
-        row = alerts[(alerts["rule_id"] == rule_id) &
-                    (alerts["account_id"] == account_id)].iloc[0]
-        doc = generate_str(account_id, rule_id, row, tx)
-
-        st.session_state["str_doc"] = doc
-
-    if "str_doc" in st.session_state:
+    if st.session_state.get("str_doc_key") == (rule_id, account_id):
         st.divider()
         st.markdown(st.session_state["str_doc"])
         st.download_button(
@@ -268,3 +273,5 @@ elif page == "④ STR 생성":
             file_name=f"STR_{rule_id}_{account_id}.md",
             mime="text/markdown",
         )
+    elif "str_doc_key" in st.session_state:
+        st.info("룰 또는 계좌가 변경되었습니다. 'STR 초안 생성'을 다시 누르십시오.")
