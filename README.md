@@ -455,11 +455,15 @@ streamlit run app.py
 
 ---
 
-## 향후 계획
+## 구현 완료
 
-- [x] ML 기반 알림 우선순위 정렬 (Precision@20% = 20.8%, 재현율 79.2%)
-- [x] Streamlit 심사 화면 ([라이브 데모](https://aml-monitoring-cometkim.streamlit.app))
-- [x] STR 초안 자동 생성 (FIU 별지 제1호 서식)
+탐지에서 그치지 않고 심사역이 실제로 쓰는 산출물까지 연결했습니다.
+
+- **탐지 룰 4종** — 법 조문을 실행 가능한 규칙으로 번역, CTR 베이스라인 대비 알림 321분의 1
+- **임계값 튜닝 실험** — 파라미터별 효과를 실질 지렛대·win-win·무효과·검증 불가로 분류
+- **ML 기반 알림 우선순위 정렬** — Precision@20% = 20.8%, 재현율 79.2% (AUC 0.897)
+- **Streamlit 심사 화면 4종** — [라이브 데모](https://aml-monitoring-cometkim.streamlit.app)
+- **STR 초안 자동 생성** — FIU 별지 제1호 서식, 종합의견 육하원칙·8개 항목 구조화
 
 ---
 
