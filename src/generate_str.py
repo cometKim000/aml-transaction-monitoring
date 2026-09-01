@@ -44,6 +44,69 @@ RULE_BASIS = {
 }
 
 
+def load_profile():
+    """계좌별 평소 거래 프로파일 (없으면 None)
+
+    make_tx_sample.py가 생성한다. 없어도 초안 생성은 되며, '변동된 차이점'이
+    담당자 기입란으로 남을 뿐이다.
+    """
+    p = Path(f"{ALERTS}/account_profile.parquet")
+    if not p.exists():
+        return None
+    return pd.read_parquet(p).set_index("account_id")
+
+
+def format_baseline_delta(account_id, txns, profile):
+    """알림 구간과 계좌의 평소 거래를 대조한 문장
+
+    알림 구간만 떼어 기술한 보고서는 미흡으로 분류된다. 전후 거래유형과
+    비교할 수 있도록 정량 비교를 시스템이 채워 준다. 질적 차이(거래 목적·
+    상대방 성격의 변화)는 원장으로 알 수 없어 담당자 몫으로 남긴다.
+    """
+    tail = ("[위 수치에 더해 거래 목적·상대방 성격의 변화 등 "
+            "질적 차이를 담당자가 보완]")
+    if profile is None or account_id not in profile.index:
+        return ("[알림 기간 전후의 거래내역 및 평소 거래유형과 비교해 무엇이 "
+                "달라졌는지 기재. 알림 구간만 떼어 기술하면 미흡 보고로 분류됨]")
+
+    # 프로파일은 이 계좌가 당사자인 거래만 집계한다. 반면 근거 거래에는
+    # 계좌가 당사자가 아닌 건이 섞일 수 있다(R-03은 순환 경로 전체를 싣는다).
+    # 비교 기준을 맞추기 위해 계좌가 당사자인 거래만 골라 대조한다.
+    own = txns[(txns["from_account"] == account_id)
+               | (txns["to_account"] == account_id)]
+    if own.empty:
+        return ("[근거 거래에 본 계좌가 당사자인 건이 없어 평소 거래와 "
+                "대조하지 못했습니다. 담당자가 직접 비교 기재]")
+
+    p = profile.loc[account_id]
+    alert_days = max((own["ts"].max() - own["ts"].min()).total_seconds()
+                     / 86400, 1 / 24)
+    base_days = max((p["last_ts"] - p["first_ts"]).total_seconds() / 86400,
+                    1 / 24)
+
+    alert_rate = len(own) / alert_days
+    base_rate = p["txn_total"] / base_days
+    ratio = alert_rate / base_rate if base_rate else float("nan")
+    share = len(own) / p["txn_total"] if p["txn_total"] else float("nan")
+
+    cps = pd.unique(pd.concat([own["from_account"], own["to_account"]]))
+    n_cp = len([c for c in cps if c != account_id])
+
+    scope = ""
+    if len(own) < len(txns):
+        scope = (f"근거 거래 {len(txns):,}건 중 본 계좌가 당사자인 "
+                f"{len(own):,}건 기준. ")
+
+    return (
+        f"{scope}알림 구간 {alert_days:.1f}일간 {len(own):,}건"
+        f"(일평균 {alert_rate:,.1f}건), 계좌 전체 관측구간 {base_days:.1f}일간 "
+        f"{int(p['txn_total']):,}건(일평균 {base_rate:,.1f}건) — 알림 구간 "
+        f"거래빈도는 평소의 {ratio:.2f}배이며 계좌 전체 거래의 "
+        f"{share:.1%}를 차지. 거래상대방은 알림 구간 {n_cp:,}개 / "
+        f"계좌 전체 {int(p['cp_total']):,}개. {tail}"
+    )
+
+
 def load_account_txns(tx, account_id, txn_ids):
     """알림 근거 거래 상세 조회"""
     return tx[tx["txn_id"].isin(txn_ids)].sort_values("ts")
@@ -144,8 +207,12 @@ def format_evidence(rule_id, evidence):
     return json.dumps(evidence, ensure_ascii=False)
 
 
-def generate_str(account_id, rule_id, alert_row, tx):
-    """단일 알림 → STR 초안 (마크다운)"""
+def generate_str(account_id, rule_id, alert_row, tx, profile=None):
+    """단일 알림 → STR 초안 (마크다운)
+
+    profile : load_profile() 결과. 주면 '변동된 차이점'의 정량 비교를
+              시스템이 채우고, 없으면 담당자 기입란으로 남는다.
+    """
     evidence = json.loads(alert_row["evidence"])
     txn_ids = json.loads(alert_row["txn_ids"])
     txns = load_account_txns(tx, account_id, txn_ids)
@@ -266,14 +333,15 @@ def generate_str(account_id, rule_id, alert_row, tx):
          "전신송금이 포함된 경우 송금인·수취인 정보와 송금 목적"),
         ("자금 출처",
          "유입 자금의 원천(급여·매출·대출·타인 이체 등)과 확인 근거"),
-        ("변동된 차이점",
-         "알림 기간 전후의 거래내역 및 평소 거래유형과 비교해 무엇이 달라졌는지. "
-         "알림 구간만 떼어 기술하면 미흡 보고로 분류됨"),
         ("특이점",
          "직업·소득 대비 거래규모 불일치, 과거 STR 보고 이력, 언론보도 등 "
          "분석에 유용한 정보"),
     ]:
         lines.append(f"| **{item}** | [{guide}] |")
+        if item == "자금 출처":
+            # 평소 거래유형과의 대조는 시스템이 정량 부분을 채워 준다
+            lines.append(f"| **변동된 차이점** | "
+                        f"{format_baseline_delta(account_id, txns, profile)} |")
     lines.append("")
     lines.append("### 담당자 종합의견")
     lines.append("")
@@ -307,12 +375,16 @@ if __name__ == "__main__":
         "total_amount", ascending=False).head(n)
 
     tx = pd.read_parquet(f"{REF}/transactions.parquet")
+    profile = load_profile()
+    if profile is None:
+        print("주의: account_profile.parquet 없음 — '변동된 차이점'이 "
+              "담당자 기입란으로 남습니다 (src/make_tx_sample.py 실행 필요)")
 
     out_dir = Path("data/str_drafts")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for _, row in alerts.iterrows():
-        doc = generate_str(row["account_id"], rule_id, row, tx)
+        doc = generate_str(row["account_id"], rule_id, row, tx, profile)
         fpath = out_dir / f"STR_{rule_id}_{row['account_id']}.md"
         fpath.write_text(doc, encoding="utf-8")
         print(f"→ {fpath}")

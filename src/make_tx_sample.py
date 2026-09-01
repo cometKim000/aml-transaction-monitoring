@@ -21,11 +21,12 @@ REF = "data/reference"
 
 FILES = ["r01.parquet", "r02.parquet", "r03.parquet", "r04.parquet"]
 OUT = f"{ALERTS}/tx_sample.parquet"
+OUT_PROFILE = f"{ALERTS}/account_profile.parquet"
 
 
-def collect_txn_ids():
-    """알림에 근거로 쓰인 고유 거래 ID 수집"""
-    txn_ids = set()
+def collect_targets():
+    """알림의 근거 거래 ID와 대상 계좌 수집"""
+    txn_ids, accounts = set(), set()
     for fname in FILES:
         p = Path(f"{ALERTS}/{fname}")
         if not p.exists():
@@ -34,8 +35,39 @@ def collect_txn_ids():
         df = pd.read_parquet(p)
         for ids in df["txn_ids"]:
             txn_ids.update(json.loads(ids))
-        print(f"  {fname}: 알림 {len(df):,}건 → 누적 거래 ID {len(txn_ids):,}개")
-    return txn_ids
+        accounts.update(df["account_id"])
+        print(f"  {fname}: 알림 {len(df):,}건 → 누적 거래 ID {len(txn_ids):,}개 "
+              f"/ 계좌 {len(accounts):,}개")
+    return txn_ids, accounts
+
+
+def build_profile(tx, accounts):
+    """알림 계좌의 평소 거래 프로파일
+
+    STR 종합의견의 '변동된 차이점'은 알림 구간을 평소 거래유형과 비교해
+    기술해야 한다. 비교에 필요한 것은 집계값뿐이므로 원본 거래를 싣지 않고
+    계좌별 요약만 만든다 — 전체 이력을 담으면 20MB지만 요약은 280KB다.
+
+    계좌는 송신·수신 양쪽에 나타나므로 두 방향을 각각 한 행으로 펼친 뒤
+    집계한다.
+    """
+    cols = ["from_account", "to_account", "amount", "ts"]
+    sent = tx[cols].rename(columns={"from_account": "account_id",
+                                    "to_account": "cp"})
+    recv = tx[["to_account", "from_account", "amount", "ts"]].rename(
+        columns={"to_account": "account_id", "from_account": "cp"})
+    long = pd.concat([sent, recv], ignore_index=True)
+    long = long[long["account_id"].isin(accounts)]
+
+    prof = long.groupby("account_id").agg(
+        txn_total=("amount", "size"),
+        amount_total=("amount", "sum"),
+        cp_total=("cp", "nunique"),
+        first_ts=("ts", "min"),
+        last_ts=("ts", "max"),
+    ).reset_index()
+    print(f"계좌 프로파일: {len(prof):,}개 계좌")
+    return prof
 
 
 def verify(sample, txn_ids):
@@ -62,7 +94,7 @@ if __name__ == "__main__":
         )
 
     print("알림 근거 거래 ID 수집")
-    txn_ids = collect_txn_ids()
+    txn_ids, accounts = collect_targets()
     if not txn_ids:
         raise SystemExit("알림이 없습니다 — src/rules/ 실행이 선행돼야 합니다")
 
@@ -73,6 +105,11 @@ if __name__ == "__main__":
     print(f"추출: {len(sample):,}건 ({len(sample)/len(tx):.1%})")
 
     verify(sample, txn_ids)
+
+    profile = build_profile(tx, accounts)
+    profile.to_parquet(OUT_PROFILE, index=False, compression="zstd")
+    prof_kb = Path(OUT_PROFILE).stat().st_size / 1024
+    print(f"→ {OUT_PROFILE} ({prof_kb:.0f} KB)")
 
     # zstd — 전체 컬럼을 유지하면서 snappy 대비 약 27% 작다
     sample.to_parquet(OUT, index=False, compression="zstd")

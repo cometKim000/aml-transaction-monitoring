@@ -12,7 +12,8 @@ import plotly.graph_objects as go
 import streamlit as st
 
 sys.path.insert(0, "src")
-from generate_str import format_evidence, generate_str   # noqa: E402
+from generate_str import (format_evidence, generate_str,   # noqa: E402
+                          load_profile)
 
 REF = "data/reference"
 ALERTS = "data/alerts"
@@ -105,6 +106,12 @@ def load_transactions():
         return pd.read_parquet(sample_path)
     st.error("거래 원장 데이터를 찾을 수 없습니다.")
     st.stop()
+
+
+@st.cache_data
+def load_account_profile():
+    """평소 거래 프로파일 (STR '변동된 차이점' 산출용)"""
+    return load_profile()
 
 
 @st.cache_data
@@ -364,7 +371,7 @@ elif page == "④ STR 생성":
     if st.button("STR 초안 생성", type="primary"):
         with st.spinner("초안 생성 중..."):
             st.session_state["str_doc"] = generate_str(
-                account_id, rule_id, row, tx)
+                account_id, rule_id, row, tx, load_account_profile())
         # 생성 시점의 대상을 함께 기록 — 룰·계좌를 바꾸면 이전 초안을 내린다
         st.session_state["str_doc_key"] = (rule_id, account_id)
 
