@@ -290,7 +290,10 @@ python src/analyze_rules.py
 # 5. STR 초안 생성 (룰, 건수)
 python src/generate_str.py R-03 3
 
-# 6. 심사 화면 실행
+# 6. 배포용 거래 샘플 갱신 (룰 재실행 시 함께 수행)
+python src/make_tx_sample.py
+
+# 7. 심사 화면 실행
 streamlit run app.py
 ```
 
@@ -300,7 +303,8 @@ streamlit run app.py
 > (`data/alerts/tx_sample.parquet`, 66.8만 건 / 10MB)로 자동 대체되며,
 > **③ 알림 상세·④ STR 생성 기능은 동일하게 작동합니다**
 > (알림 근거 거래는 전량 포함되어 있습니다). 로컬에 전체 원장이 있으면
-> 그쪽을 우선 사용합니다.
+> 그쪽을 우선 사용합니다. 룰을 재실행해 알림이 바뀌면
+> `python src/make_tx_sample.py`로 샘플을 함께 갱신해야 합니다.
 
 ---
 
@@ -314,6 +318,7 @@ streamlit run app.py
 │   ├── alerts.py               # 알림 공통 스키마
 │   ├── analyze_rules.py        # 룰별 기여도 분석
 │   ├── generate_str.py         # STR 초안 생성 (FIU 별지 제1호)
+│   ├── make_tx_sample.py       # 배포용 거래 샘플 추출
 │   ├── tune_r02.py ~ r04.py    # 파라미터 민감도 실험
 │   ├── plot_tuning.py          # 민감도 곡선 시각화
 │   └── rules/
