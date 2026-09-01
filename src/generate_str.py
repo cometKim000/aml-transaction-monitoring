@@ -43,6 +43,61 @@ def load_account_txns(tx, account_id, txn_ids):
     return tx[tx["txn_id"].isin(txn_ids)].sort_values("ts")
 
 
+RULE_WHY = {
+    "R-01": "고액현금거래보고(CTR) 기준액 미만으로 거래를 분할해 보고 의무를 "
+            "회피한 정황으로, 자금세탁 3단계 중 예치(placement)에 해당한다.",
+    "R-02": "단기간 집중 유입 직후 분산 유출되어 계좌가 자금의 실질 귀속처가 "
+            "아닌 경유지로 이용된 정황으로, 자금 이동 경로 추적을 어렵게 한다.",
+    "R-03": "자금이 여러 계좌를 순환해 최초 계좌로 회귀하여 자금의 출처를 "
+            "가린 정황으로, 자금세탁 3단계 중 반복(layering)에 해당한다.",
+    "R-04": "국경 간 고액거래로 강화된 고객확인(EDD) 대상에 해당하며, "
+            "자금의 국외 이전을 통한 추적 회피 가능성을 검토해야 한다.",
+}
+
+
+def format_5w1h(rule_id, account_id, evidence, txns):
+    """육하원칙 기재사항 표
+
+    STR 종합의견은 육하원칙에 따라 기재하는 것이 원칙이다. 시스템은
+    거래 원장에서 확인되는 사실(누가·언제·어디서·무엇을·어떻게)까지만
+    채우고, 고객 진술과 정성적 판단이 필요한 부분은 담당자 몫으로 비워 둔다.
+    """
+    ts_min, ts_max = txns["ts"].min(), txns["ts"].max()
+    span_days = (ts_max - ts_min).total_seconds() / 86400
+
+    channels = ", ".join(f"{k}({v}건)" for k, v in
+                        txns["fmt"].value_counts().items())
+
+    where = f"거래채널 {channels}"
+    if "from_bank" in txns.columns and "to_bank" in txns.columns:
+        banks = pd.unique(pd.concat([txns["from_bank"], txns["to_bank"]]))
+        where += f" / 관련 금융기관 {len(banks):,}개"
+    if "is_cross_border" in txns.columns and txns["is_cross_border"].any():
+        countries = pd.unique(pd.concat([txns["from_country"],
+                                        txns["to_country"]]))
+        where += f" / 관련국 {', '.join(map(str, countries))}"
+
+    cur = txns["currency"].unique()
+    cur_label = cur[0] if len(cur) == 1 else f"{len(cur)}종 혼재"
+
+    rows = [
+        ("누가 (Who)", f"계좌 {account_id} / 명의인 [원장 계좌정보 연동 후 기입]"),
+        ("언제 (When)", f"{ts_min:%Y-%m-%d %H:%M} ~ {ts_max:%Y-%m-%d %H:%M} "
+                       f"({span_days:.1f}일간)"),
+        ("어디서 (Where)", where),
+        ("무엇을 (What)", f"{len(txns):,}건 / 합산 {txns['amount'].sum():,.2f} "
+                         f"{cur_label}"),
+        ("어떻게 (How)", format_evidence(rule_id, evidence)),
+        ("왜 (Why)", RULE_WHY.get(rule_id, "") +
+                    " [담당자가 해당 고객의 직업·소득·거래목적에 비추어 "
+                    "판단 근거를 보완 기입]"),
+    ]
+
+    out = ["| 구분 | 내용 |", "|---|---|"]
+    out += [f"| **{k}** | {v} |" for k, v in rows]
+    return out
+
+
 def format_evidence(rule_id, evidence):
     """룰별 evidence를 사람이 읽는 문장으로 변환"""
     if rule_id == "R-01":
@@ -171,13 +226,30 @@ def generate_str(account_id, rule_id, alert_row, tx):
                 f"합산 금액: {txns['amount'].sum():,.2f}")
     lines.append("")
 
-    lines.append("## ⑤ 의심스러운 합당한 근거")
+    lines.append("## ⑤ 의심스러운 합당한 근거 (종합의견)")
     lines.append("")
     lines.append(f"**적용 규정**: {RULE_BASIS.get(rule_id, '')}")
     lines.append("")
-    lines.append(f"**시스템 판정 근거**: {format_evidence(rule_id, evidence)}")
+    lines.append("### 육하원칙 기재사항")
     lines.append("")
-    lines.append("**담당자 검토 의견**: [보고책임자가 정성적 판단을 추가 기입]")
+    lines += format_5w1h(rule_id, account_id, evidence, txns)
+    lines.append("")
+    lines.append("### 금융창구 대화 내용")
+    lines.append("")
+    lines.append("[창구 응대가 있었다면 고객의 진술을 그대로 기재. "
+                "거래 목적·자금 원천에 대한 답변, 질문 회피·진술 번복·"
+                "대리인 개입 등 특이 정황을 구체적으로 적을 것. "
+                "창구 접촉이 없었던 비대면 거래는 그 사실을 명시할 것]")
+    lines.append("")
+    lines.append("### 분석에 유용한 추가 정보")
+    lines.append("")
+    lines.append("[동일 명의인의 타 계좌 거래, 과거 STR 보고 이력, "
+                "고객확인(CDD/EDD) 결과, 직업·소득 대비 거래규모의 불일치 등 "
+                "FIU 분석에 참고가 될 정보를 기재]")
+    lines.append("")
+    lines.append("### 담당자 종합의견")
+    lines.append("")
+    lines.append("[위 사실관계를 종합해 보고책임자가 의심 사유를 서술]")
     lines.append("")
 
     lines.append("## ⑥ 보존자료의 종류")

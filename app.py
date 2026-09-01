@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 sys.path.insert(0, "src")
-from generate_str import generate_str   # noqa: E402
+from generate_str import format_evidence, generate_str   # noqa: E402
 
 REF = "data/reference"
 ALERTS = "data/alerts"
@@ -23,6 +23,54 @@ RULE_LABELS = {
     "R-03": "순환거래 (Cycle)",
     "R-04": "국경간 고액거래",
 }
+
+# 처음 보는 사람이 룰 이름만으로는 무엇을 잡는지 알 수 없다.
+# 무엇을 탐지하는지 / 왜 의심스러운지 / 어떤 조문에 근거하는지를 함께 보여준다.
+RULE_DESC = {
+    "R-01": {
+        "what": "하루 동안 여러 번에 나눠 입금해, 합치면 기준액을 넘지만 "
+                "한 건씩은 기준액($10,000) 아래가 되도록 맞춘 계좌입니다.",
+        "why": "금융회사는 기준액 이상 현금거래를 의무적으로 보고(CTR)해야 "
+               "합니다. 기준액 바로 아래로 쪼개 넣으면 이 보고를 피할 수 있어, "
+               "쪼갠 행위 자체가 의심 신호가 됩니다.",
+        "basis": "특금법 제4조의2 / 시행령 제8조의2 제1항",
+    },
+    "R-02": {
+        "what": "짧은 시간 안에 여러 계좌에서 돈이 몰려 들어온 직후, "
+                "다시 여러 계좌로 흩어져 빠져나간 계좌입니다.",
+        "why": "돈이 머무르지 않고 스쳐 지나갔다는 뜻으로, 계좌 주인이 실제 "
+               "주인이 아니라 자금이 거쳐 가는 통로일 가능성이 큽니다. "
+               "흔히 말하는 대포통장의 전형적인 형태입니다.",
+        "basis": "업무규정상 의심거래 유형 (자금 이동 경로 은닉)",
+    },
+    "R-03": {
+        "what": "A → B → C → ... → 다시 A 순으로 자금이 여러 계좌를 돌아 "
+                "출발한 계좌로 되돌아온 경우입니다.",
+        "why": "돈을 굳이 여러 계좌에 돌린 뒤 자기에게 되돌리는 것은 정상 "
+               "거래에서 드뭅니다. 거쳐 간 계좌가 많을수록 자금의 출처를 "
+               "추적하기 어려워지며, 자금세탁의 반복(layering) 단계에 해당합니다.",
+        "basis": "업무규정상 의심거래 유형 (자금 출처 은닉)",
+    },
+    "R-04": {
+        "what": "국경을 넘는 거래 중 금액이 기준액($10,000) 이상인 경우입니다.",
+        "why": "자금이 국외로 나가면 국내 수사·조사 권한이 미치지 않아 추적이 "
+               "어려워집니다. 이 때문에 강화된 고객확인(EDD) 대상으로 "
+               "분류해 자금 원천과 거래 목적을 확인해야 합니다.",
+        "basis": "특금법 제5조의2 제1항 제2호 (강화된 고객확인)",
+    },
+}
+
+
+def rule_help(rule_id, expanded=False):
+    """룰 하나의 설명 블록"""
+    d = RULE_DESC.get(rule_id)
+    if not d:
+        return
+    with st.expander(f"{rule_id} {RULE_LABELS.get(rule_id, '')} — 어떤 룰인가요?",
+                     expanded=expanded):
+        st.markdown(f"**무엇을 탐지하나요**  \n{d['what']}")
+        st.markdown(f"**왜 의심스러운가요**  \n{d['why']}")
+        st.caption(f"근거: {d['basis']}")
 
 st.set_page_config(page_title="AML 거래모니터링", layout="wide")
 
@@ -83,11 +131,30 @@ else:
 st.sidebar.title("AML 거래모니터링")
 page = st.sidebar.radio("화면", ["① 대시보드", "② 알림 리스트", "③ 알림 상세", "④ STR 생성"])
 
+st.sidebar.divider()
+with st.sidebar.expander("처음 오셨나요?"):
+    st.markdown(
+        "자금세탁이 의심되는 거래를 찾아내는 시스템입니다.\n\n"
+        "**용어**\n"
+        "- **알림**: 탐지 룰에 걸린 계좌 한 건\n"
+        "- **진성**: 실제 자금세탁으로 확인된 건\n"
+        "- **정밀도**: 알림 중 진성의 비율 (높을수록 헛수고가 적음)\n"
+        "- **STR**: 의심거래보고서. 금융회사가 FIU에 제출하는 법정 서식\n\n"
+        "**보는 순서**\n"
+        "① 전체 현황 → ② 우선순위 높은 알림 고르기 → "
+        "③ 근거 확인 → ④ 보고서 초안 만들기"
+    )
+with st.sidebar.expander("탐지 룰 4종"):
+    for rid, d in RULE_DESC.items():
+        st.markdown(f"**{rid} {RULE_LABELS[rid]}**  \n{d['what']}")
+
 # =====================================================================
 # ① 대시보드
 # =====================================================================
 if page == "① 대시보드":
     st.title("탐지 현황 대시보드")
+    st.caption("탐지 룰 4종이 낸 알림의 전체 현황입니다. "
+              "정밀도가 높을수록 심사 인력이 헛도는 일이 적습니다.")
 
     total_alerts = alerts["account_id"].nunique()
     total_tp = alerts.groupby("account_id")["is_true_positive"].any().sum()
@@ -152,6 +219,9 @@ elif page == "② 알림 리스트":
     with col3:
         sort_desc = st.checkbox("점수 높은 순", value=True)
 
+    for rid in rule_filter:
+        rule_help(rid)
+
     view = alerts[alerts["rule_id"].isin(rule_filter)].copy()
     view = view.sort_values("score", ascending=not sort_desc)
 
@@ -182,6 +252,7 @@ elif page == "② 알림 리스트":
 # =====================================================================
 elif page == "③ 알림 상세":
     st.title("알림 상세")
+    st.caption("이 계좌가 왜 걸렸는지, 근거가 된 거래가 무엇인지 확인하는 화면입니다.")
 
     default_acc = st.session_state.get("selected_account", "")
     acc_options = sorted(alerts["account_id"].unique().tolist())
@@ -195,13 +266,27 @@ elif page == "③ 알림 상세":
     c1.metric("걸린 룰 수", acc_alerts["rule_id"].nunique())
     c2.metric("우선순위 점수", f"{acc_alerts['score'].max():.3f}")
     c3.metric("실제 진성 여부", "예" if acc_alerts["is_true_positive"].any() else "미상")
+    st.caption("'진성'은 데이터에 자금세탁으로 라벨된 거래가 근거에 포함됐다는 "
+              "뜻입니다. 평가용 지표이며 실무에서는 알 수 없는 값입니다.")
 
     for _, row in acc_alerts.iterrows():
-        with st.expander(f"{RULE_LABELS.get(row['rule_id'], row['rule_id'])} "
-                        f"— 탐지 {row['detected_ts']}"):
+        rid = row["rule_id"]
+        with st.expander(f"{RULE_LABELS.get(rid, rid)} "
+                        f"— 탐지 {row['detected_ts']}", expanded=True):
             ev = json.loads(row["evidence"])
-            st.json(ev)
 
+            d = RULE_DESC.get(rid)
+            if d:
+                st.markdown(f"**어떤 룰인가요**  \n{d['what']}")
+                st.markdown(f"**왜 의심스러운가요**  \n{d['why']}")
+
+            st.markdown("**이 계좌의 판정 근거**")
+            st.info(format_evidence(rid, ev))
+
+            with st.popover("판정에 쓰인 원시 수치 (JSON)"):
+                st.json(ev)
+
+            st.markdown(f"**근거가 된 거래 내역** ({row['txn_count']:,}건)")
             txn_ids = json.loads(row["txn_ids"])
             detail = tx[tx["txn_id"].isin(txn_ids)].sort_values("ts")
             st.dataframe(
@@ -238,6 +323,20 @@ elif page == "④ STR 생성":
     st.title("STR 초안 생성")
     st.caption("FIU 별지 제1호 서식 기준. 자동생성 초안이며 보고책임자 검토가 필요합니다.")
 
+    with st.expander("STR이 무엇인가요?"):
+        st.markdown(
+            "**STR(의심거래보고)** 은 금융회사가 자금세탁이 의심되는 거래를 "
+            "발견했을 때 금융정보분석원(FIU)에 제출하는 법정 보고서입니다. "
+            "금액과 무관하게 의심된다고 판단하면 보고 의무가 생기고, "
+            "의심거래로 결정한 시점부터 **3영업일 이내**에 보고해야 합니다.\n\n"
+            "종합의견은 **육하원칙(누가·언제·어디서·무엇을·어떻게·왜)** 에 따라 "
+            "적는 것이 원칙이며, 창구에서 고객과 나눈 대화나 분석에 도움이 되는 "
+            "정보가 있으면 함께 적습니다.\n\n"
+            "아래 초안에서 **시스템이 채우는 것은 거래 원장에서 확인되는 "
+            "사실까지**입니다. 고객 진술과 정성적 판단은 `[  ]` 로 비워 두었으며, "
+            "보고책임자가 채우고 서명해야 제출할 수 있습니다."
+        )
+
     target = st.session_state.get("str_target", "")
     rule_default = st.session_state.get("str_rule", "R-03")
 
@@ -251,6 +350,8 @@ elif page == "④ STR 생성":
         acc_idx = acc_options.index(target) if target in acc_options else 0
         account_id = st.selectbox("계좌 선택", options=acc_options,
                                  index=acc_idx if acc_options else 0)
+
+    rule_help(rule_id)
 
     row = alerts[(alerts["rule_id"] == rule_id) &
                 (alerts["account_id"] == account_id)].iloc[0]
