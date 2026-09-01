@@ -45,7 +45,15 @@ def load_ml_scores():
 
 @st.cache_data
 def load_transactions():
-    return pd.read_parquet(f"{REF}/transactions.parquet")
+    """배포 환경(전체 원장 없음)에서는 알림 연루 거래 샘플로 대체"""
+    full_path = Path(f"{REF}/transactions.parquet")
+    if full_path.exists():
+        return pd.read_parquet(full_path)
+    sample_path = Path(f"{ALERTS}/tx_sample.parquet")
+    if sample_path.exists():
+        return pd.read_parquet(sample_path)
+    st.error("거래 원장 데이터를 찾을 수 없습니다.")
+    st.stop()
 
 
 @st.cache_data

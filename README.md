@@ -286,18 +286,34 @@ python src/rules/r04_cross_border.py
 
 # 4. 룰별 기여도 분석
 python src/analyze_rules.py
+
+# 5. STR 초안 생성 (룰, 건수)
+python src/generate_str.py R-03 3
+
+# 6. 심사 화면 실행
+streamlit run app.py
 ```
+
+> **배포 환경 안내**: Streamlit Cloud 등 원격 배포 시, 전체 거래 원장
+> (`data/reference/transactions.parquet`, 448만 건 / 188MB)은 용량 때문에
+> 리포지토리에 포함하지 않습니다. 대신 알림에 연루된 거래만 추출한 샘플
+> (`data/alerts/tx_sample.parquet`, 66.8만 건 / 10MB)로 자동 대체되며,
+> **③ 알림 상세·④ STR 생성 기능은 동일하게 작동합니다**
+> (알림 근거 거래는 전량 포함되어 있습니다). 로컬에 전체 원장이 있으면
+> 그쪽을 우선 사용합니다.
 
 ---
 
 ## 리포지토리 구조
 
 ```
+├── app.py                      # Streamlit 심사 화면 (4종)
 ├── src/
 │   ├── prepare.py              # 데이터 정제
 │   ├── parse_patterns.py       # 정답셋 구축
 │   ├── alerts.py               # 알림 공통 스키마
 │   ├── analyze_rules.py        # 룰별 기여도 분석
+│   ├── generate_str.py         # STR 초안 생성 (FIU 별지 제1호)
 │   ├── tune_r02.py ~ r04.py    # 파라미터 민감도 실험
 │   ├── plot_tuning.py          # 민감도 곡선 시각화
 │   └── rules/
@@ -312,9 +328,10 @@ python src/analyze_rules.py
 │   ├── img/                    # 민감도 곡선 (7종)
 │   └── *.csv                   # 실험 원시 데이터
 └── data/
-    ├── raw/                    # 원본 (Kaggle)
-    ├── reference/               # 정제 데이터·정답셋
-    └── alerts/                 # 룰별 알림 결과
+    ├── raw/                    # 원본 (Kaggle, 리포 제외)
+    ├── reference/              # 정제 데이터·정답셋 (리포 제외)
+    ├── alerts/                 # 룰별 알림 결과 + 배포용 거래 샘플
+    └── str_drafts/             # STR 초안 산출물
 ```
 
 ---
